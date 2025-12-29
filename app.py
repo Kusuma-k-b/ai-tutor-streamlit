@@ -1,46 +1,45 @@
 import streamlit as st
-from google import genai
 import google.generativeai as genai
-from google.genai import types
 
 # 1. Page Config
 st.set_page_config(page_title="AI Tutor", page_icon="🎓")
 st.title("🎓 AI Tutor for Freshers")
 
-# 2. Get API Key safely from Streamlit Secrets
-# (We will set this up in the Streamlit Cloud dashboard later)
+# 2. Get API Key from Streamlit Secrets
 try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 except Exception:
-    st.error("Please set the GOOGLE_API_KEY in Streamlit Secrets.")
+    st.error("Please set GEMINI_API_KEY in Streamlit Secrets.")
     st.stop()
 
 # 3. System Prompt
-SYSTEM_PROMPT = "You are an AI tutor for freshers. Explain concepts step-by-step using simple language."
+SYSTEM_PROMPT = (
+    "You are an AI tutor for freshers. "
+    "Explain concepts step-by-step using simple language and examples."
+)
 
-# 4. Initialize Chat History (Memory)
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# 4. Initialize Gemini Model
+model = genai.GenerativeModel(
+    model_name="gemini-pro",
+    system_instruction=SYSTEM_PROMPT
+)
 
-# 5. Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# 5. Initialize Chat Memory
+if "chat" not in st.session_state:
+    st.session_state.chat = model.start_chat(history=[])
 
-# 6. Chat Input
+# 6. Display Chat History
+for msg in st.session_state.chat.history:
+    role = "user" if msg.role == "user" else "assistant"
+    with st.chat_message(role):
+        st.markdown(msg.parts[0].text)
+
+# 7. Chat Input
 if prompt := st.chat_input("Ask me anything about coding..."):
-    # Add user message to history
-    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Get AI response
+    response = st.session_state.chat.send_message(prompt)
+
     with st.chat_message("assistant"):
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT)
-        )
         st.markdown(response.text)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
