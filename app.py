@@ -7,7 +7,7 @@ from google.genai import types
 from google.colab import userdata
 
 # 1. Setup the Client using your Colab Secret
-api_key = userdata.get('Gemiini_API_KEY')
+api_key = userdata.get('GEMINI_API_KEY')
 client = genai.Client(api_key=api_key)
 
 # 2. Define the Personality (System Instruction)
